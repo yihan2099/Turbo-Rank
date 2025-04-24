@@ -10,4 +10,5 @@ pytest
 python-dotenv
 ruff
 scikit-learn
+recommenders
 -e .

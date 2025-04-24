@@ -4,7 +4,7 @@
 
 PROJECT_NAME = turbo-rank
 PYTHON_VERSION = 3.10
-PYTHON_INTERPRETER = python
+PYTHON_INTERPRETER = python3.10
 
 #################################################################################
 # COMMANDS                                                                      #
