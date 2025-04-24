@@ -11,4 +11,10 @@ python-dotenv
 ruff
 scikit-learn
 recommenders
+pyspark
+pyarrow
+fastparquet
+transformers[torch]
+mlflow
+shap
 -e .
