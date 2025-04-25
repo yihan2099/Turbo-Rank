@@ -42,7 +42,7 @@ def parse_args():
     ap.add_argument("--embed_dim", type=int, default=256)
     ap.add_argument("--heads", type=int, default=8)
     ap.add_argument("--epochs", type=int, default=3)
-    ap.add_argument("--batch", type=int, default=128)
+    ap.add_argument("--batch", type=int, default=1024)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--amp", action="store_true")
     ap.add_argument("--num_workers", type=int, default=None)
@@ -79,8 +79,11 @@ def main(args):
     # if local_rank == 0:
     #     load_and_prepare_nrms(DATA_DIR, regen=True)
     # torch.distributed.barrier()
-    cand, hist, lbls, vocab = load_and_prepare_nrms(DATA_DIR, regen=False)
-    dl = build_dataloader(cand, hist, lbls, args)
+    cand_tr, hist_tr, lbl_tr, vocab = load_and_prepare_nrms(DATA_DIR, split="train")
+    cand_va, hist_va, lbl_va, _     = load_and_prepare_nrms(DATA_DIR, split="dev")
+
+    dl_tr = build_dataloader(cand_tr, hist_tr, lbl_tr, args)
+    dl_va = build_dataloader(cand_va, hist_va, lbl_va, args)
 
     # 2 ▸ Model
     from engine.registry import create_model  # late import
@@ -118,12 +121,18 @@ def main(args):
             log_system_metrics=True,  #  ← captures CPU / GPU / I/O
             tags={"git_sha": git_sha} if git_sha else None,
         ) as run:
+            # ▲ write run-id back to the tuning driver (rank-0 only)
+            if (rid_f := os.getenv("MLFLOW_RUN_ID_FILE")):
+                Path(rid_f).write_text(run.info.run_id)
+            
             # params – every CLI flag
             mlflow.log_params(vars(args))
 
             # training
-            fit_ddp(model, dl, epochs=args.epochs, lr=args.lr, use_amp=args.amp)
-
+            best_auc = fit_ddp(model, dl_tr, dl_va,
+                   epochs=args.epochs, lr=args.lr, use_amp=args.amp)
+            mlflow.log_metric("val_auc", best_auc)
+            
             # final model (DDP unwrap)
             mlflow.pytorch.log_model(model.module, artifact_path="model")
 
@@ -131,7 +140,9 @@ def main(args):
 
     else:
         # non-zero ranks just train
-        fit_ddp(model, dl, epochs=args.epochs, lr=args.lr, use_amp=args.amp)
+        fit_ddp(model, dl_tr, dl_va,
+                   epochs=args.epochs, lr=args.lr, use_amp=args.amp)
+
 
     cleanup_ddp()
 

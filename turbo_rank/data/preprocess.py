@@ -93,18 +93,25 @@ def _build_vocab_and_tokenise(news_df: pd.DataFrame, max_len: int):
 def load_and_prepare_nrms(
     data_dir: Path,
     *,
+    split: str = "train",          # ← NEW
     max_news_len: int = 30,
     max_hist_len: int = 50,
     cache_dir: Path | None = None,
     regen: bool = False,
 ):
-    """Return (cand_np, hist_np, lbl_np, vocab_size) using memory‑mapped arrays."""
-    cache_dir = cache_dir or (data_dir / "cache")
+    """
+    Return (cand_np, hist_np, lbl_np, vocab_size) for a single split
+    (`train`, `dev`, or `test`).
+
+    The per-split cache lives in  .../<split>/cache/.
+    """
+    data_dir  = Path(data_dir)
+    cache_dir = cache_dir or (data_dir / split / "cache")
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     cand_f = cache_dir / f"cand_{max_news_len}_{max_hist_len}.npy"
     hist_f = cache_dir / f"hist_{max_news_len}_{max_hist_len}.npy"
-    lbl_f = cache_dir / "lbl.npy"
+    lbl_f  = cache_dir / "lbl.npy"
     vocab_f = cache_dir / "vocab.json"
 
     if not regen and cand_f.exists() and hist_f.exists() and lbl_f.exists():
@@ -115,10 +122,9 @@ def load_and_prepare_nrms(
         log.info("NRMS cache hit | %d samples | vocab=%d", len(lbls), vocab_size)
         return cand, hist, lbls, vocab_size
 
-    news = pd.read_parquet(data_dir / "train" / "news.parquet", columns=["id", "title"])
-    beh = pd.read_parquet(
-        data_dir / "train" / "behaviors.parquet", columns=["history", "impressions"]
-    )
+    news = pd.read_parquet(data_dir / split / "news.parquet", columns=["id", "title"])
+    beh  = pd.read_parquet(data_dir / split / "behaviors.parquet",
+                           columns=["history", "impressions"])
 
     vocab = _build_vocab_and_tokenise(news, max_news_len)
     nid2tok = dict(zip(news["id"], news["tokens"]))

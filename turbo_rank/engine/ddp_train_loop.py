@@ -35,49 +35,74 @@ def cleanup_ddp() -> None:
 
 def fit_ddp(
     model: torch.nn.Module,
-    dl: DataLoader,
+    dl_train: DataLoader,
+    dl_val:   DataLoader | None = None,            # ← NEW
     *,
     epochs: int = 5,
     lr: float = 1e-3,
     criterion: torch.nn.Module = torch.nn.BCEWithLogitsLoss(),
     use_amp: bool = False,
-) -> None:
-    """Train a DDP-wrapped model."""
-    rank = dist.get_rank()
+) -> float:                                        # returns final val-AUC
+    rank   = dist.get_rank()
     device = torch.cuda.current_device()
 
-    optim = torch.optim.Adam(model.parameters(), lr=lr)
+    optim  = torch.optim.Adam(model.parameters(), lr=lr)
     scaler = GradScaler(enabled=use_amp)
-    auroc = BinaryAUROC().to(device)
+    auroc  = BinaryAUROC().to(device)
 
+    best_auc = 0.0
     for ep in range(epochs):
-        if isinstance(dl.sampler, DistributedSampler):
-            dl.sampler.set_epoch(ep)
+        if isinstance(dl_train.sampler, DistributedSampler):
+            dl_train.sampler.set_epoch(ep)
 
         losses = []
-        pbar = tqdm(dl, desc=f"R{rank} | Ep {ep + 1}/{epochs}", disable=rank != 0)
+        pbar = tqdm(dl_train, desc=f"R{rank}|Ep {ep+1}/{epochs}", disable=rank!=0)
 
         for batch in pbar:
             with autocast(device_type="cuda", enabled=use_amp):
                 loss, p, y = _step(model, batch, criterion, device=device)
 
-            # mixed precision backward
             scaler.scale(loss).backward()
-            scaler.step(optim)
-            scaler.update()
+            scaler.step(optim);  scaler.update()
             optim.zero_grad(set_to_none=True)
 
-            losses.append(loss.item())
-            auroc.update(p, y)  # ← p already sigmoid
+            losses.append(loss.item());   auroc.update(p, y)
 
-        mean_loss = sum(losses) / len(losses)
-        epoch_auc = auroc.compute().item()
-        auroc.reset()
+        train_loss = sum(losses) / len(losses)
+        train_auc  = auroc.compute().item();  auroc.reset()
+
+        # -------- validation ---------------------------------------------
+        if dl_val is not None:
+            val_loss, val_auc = evaluate_ddp(model, dl_val,
+                                             device=device,
+                                             criterion=criterion,
+                                             use_amp=use_amp)
+            best_auc = max(best_auc, val_auc)
+        else:
+            val_loss = val_auc = None
 
         if rank == 0:
-            mlflow.log_metric("train_loss", mean_loss, step=ep)
-            mlflow.log_metric("train_auc", epoch_auc, step=ep)
-            log.info("Epoch %d | loss %.4f | AUC %.4f", ep + 1, mean_loss, epoch_auc)
+            mlflow.log_metric("train_loss", train_loss, step=ep)
+            mlflow.log_metric("train_auc",  train_auc,  step=ep)
+            if dl_val is not None:
+                mlflow.log_metric("val_loss",   val_loss, step=ep)
+                mlflow.log_metric("val_auc",    val_auc,  step=ep)
 
-    if rank == 0:  # final checkpoint
+    # last checkpoint
+    if rank == 0:
         mlflow.pytorch.log_model(model.module, artifact_path="model")
+    return best_auc
+
+@torch.no_grad()
+def evaluate_ddp(model, dl, *, device, criterion, use_amp: bool):
+    rank   = dist.get_rank()
+    auroc  = BinaryAUROC().to(device)
+    losses = []
+
+    for batch in dl:
+        with autocast(device_type="cuda", enabled=use_amp):
+            loss, p, y = _step(model, batch, criterion, device=device)
+        losses.append(loss.item())
+        auroc.update(p, y)
+
+    return sum(losses) / len(losses), auroc.compute().item()

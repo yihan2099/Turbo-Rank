@@ -6,7 +6,7 @@
 Usage
 -----
 $ PYSPARK_PYTHON=python3 spark-submit scripts/convert_mind_to_parquet.py \
-      --input-dir data/mind --output-dir data/processed --size small --splits train,dev
+      --input-dir data/mind --output-dir data/processed/large --size large --splits train,dev
 
 Only needs to be run once after downloading the raw .zip files. The training
 code never touches Spark.
