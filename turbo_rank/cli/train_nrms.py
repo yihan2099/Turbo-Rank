@@ -18,6 +18,7 @@ if __name__ == "__main__":
     ap.add_argument("--batch", type=int, default=128)
     args = ap.parse_args()
 
+    # TODO: separate data prepare, and make it reusable
     cand, hist, lbls, vocab = load_and_prepare_nrms(DATA_DIR)
     ds = NRMSDataset(cand, hist, lbls)
     dl = DataLoader(ds, batch_size=args.batch, shuffle=True, num_workers=4, pin_memory=True)
