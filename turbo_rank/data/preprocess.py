@@ -1,7 +1,12 @@
 """Helpers that turn raw parquet → model-ready tensors/data-frames."""
+
 from __future__ import annotations
-import logging, tempfile
+
+from collections.abc import Sequence
+import logging
 from pathlib import Path
+
+import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
@@ -10,15 +15,14 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Column normalisation helpers
 # ---------------------------------------------------------------------------
-from collections.abc import Sequence
-import numpy as np
+
 
 def _to_str_list(x) -> list[str]:
     """Return a Python list[str] regardless of the original container."""
     if x is None:
         return []
     if isinstance(x, str):
-        return x.strip().split()            # original TSV string
+        return x.strip().split()  # original TSV string
     if isinstance(x, (list, tuple, np.ndarray, pd.Series, Sequence)):
         # Flatten any zero-dim ndarray and ensure str elements
         return [str(el) for el in list(x) if str(el)]
@@ -29,6 +33,7 @@ def _to_str_list(x) -> list[str]:
 # ---------------------------------------------------------------------------
 # Two-Tower pipeline
 # ---------------------------------------------------------------------------
+
 
 def _parse_impressions(impressions: list[str]) -> list[tuple[str, int]]:
     out = []
@@ -65,16 +70,17 @@ def load_and_prepare_two_tower(data_dir: Path) -> tuple[pd.DataFrame, LabelEncod
 # ---------------------------------------------------------------------------
 
 PAD_TOKEN = "<pad>"
-PAD_ID    = 0                 # reserve 0 for the padding vector
+PAD_ID = 0  # reserve 0 for the padding vector
 
-def load_and_prepare_nrms(data_dir: Path,
-                          max_news_len: int = 30,
-                          max_hist_len: int = 50) -> tuple[
-                              list[list[int]],          # candidate news tokens
-                              list[list[list[int]]],    # history tokens
-                              list[int],                # labels
-                              int                       # vocab size
-                          ]:
+
+def load_and_prepare_nrms(
+    data_dir: Path, max_news_len: int = 30, max_hist_len: int = 50
+) -> tuple[
+    list[list[int]],  # candidate news tokens
+    list[list[list[int]]],  # history tokens
+    list[int],  # labels
+    int,  # vocab size
+]:
     """
     Parse **news.parquet** + **behaviors.parquet** and return fully-padded
     tensors ready for `NRMSDataset`.
@@ -84,7 +90,7 @@ def load_and_prepare_nrms(data_dir: Path,
     * Empty histories receive one PAD vector to keep shape.
     """
     news = pd.read_parquet(data_dir / "train" / "news.parquet")
-    beh  = pd.read_parquet(data_dir / "train" / "behaviors.parquet")
+    beh = pd.read_parquet(data_dir / "train" / "behaviors.parquet")
 
     # -----------------------------------------------------------------------
     # 1. Build vocabulary and tokenise news titles
@@ -98,8 +104,8 @@ def load_and_prepare_nrms(data_dir: Path,
 
     def _tokenise_and_pad(text: str) -> list[int]:
         tokens = text.lower().split()[:max_news_len]
-        ids    = [_index(tok) for tok in tokens]
-        ids.extend([PAD_ID] * (max_news_len - len(ids)))   # right-pad
+        ids = [_index(tok) for tok in tokens]
+        ids.extend([PAD_ID] * (max_news_len - len(ids)))  # right-pad
         return ids
 
     news["tokens"] = news["title"].apply(_tokenise_and_pad)
@@ -113,8 +119,8 @@ def load_and_prepare_nrms(data_dir: Path,
 
     for _, row in beh.iterrows():
         # ---------- clicks --------------------------------------------------
-        clicks_raw  = _to_str_list(row["history"])
-        clicks_tok  = [nid2tok[c] for c in clicks_raw if c in nid2tok]
+        clicks_raw = _to_str_list(row["history"])
+        clicks_tok = [nid2tok[c] for c in clicks_raw if c in nid2tok]
 
         # pad / truncate to exactly H = max_hist_len
         if len(clicks_tok) < max_hist_len:
@@ -131,13 +137,12 @@ def load_and_prepare_nrms(data_dir: Path,
             try:
                 nid, lbl = imp.split("-")
             except ValueError:
-                continue                      # malformed
+                continue  # malformed
             if nid not in nid2tok:
-                continue                      # unseen news
-            cand.append(nid2tok[nid])         # already padded length = L
-            hist.append(clicks_tok)           # length = H × L
+                continue  # unseen news
+            cand.append(nid2tok[nid])  # already padded length = L
+            hist.append(clicks_tok)  # length = H × L
             lbls.append(int(lbl))
 
-    log.info("NRMS data prepared | %d samples | vocab=%d",
-             len(lbls), len(vocab))
+    log.info("NRMS data prepared | %d samples | vocab=%d", len(lbls), len(vocab))
     return cand, hist, lbls, len(vocab)

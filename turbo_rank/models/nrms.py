@@ -17,10 +17,10 @@ The model is decomposed into three reusable blocks:
 All PyTorch modules are torchscript‑friendly and free of
 third‑party dependencies beyond `torch>=2.2`.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Tuple
 
 import torch
 import torch.nn as nn
@@ -153,9 +153,9 @@ class NRMSModel(nn.Module):
         u = self.user_encoder(v_h)  # (B, D)
 
         # ---- stabilise -------------------------------------------------------------
-        u   = F.normalize(u,   dim=-1)             #  ❰ new ❱  L2-normalise
-        v_c = F.normalize(v_c, dim=-1)             #  ❰ new ❱
-        scores = torch.sum(u * v_c, dim=-1)        # (B)     ~cosine similarity
+        u = F.normalize(u, dim=-1)  #  ❰ new ❱  L2-normalise
+        v_c = F.normalize(v_c, dim=-1)  #  ❰ new ❱
+        scores = torch.sum(u * v_c, dim=-1)  # (B)     ~cosine similarity
         return scores
 
     # ---------------------------------------------------------------------

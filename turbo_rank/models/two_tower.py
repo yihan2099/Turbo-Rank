@@ -1,5 +1,8 @@
 """Two-Tower recommender (unchanged logic, now reusable)."""
-import torch, torch.nn as nn
+
+import torch
+import torch.nn as nn
+
 
 class TwoTowerModel(nn.Module):
     def __init__(self, num_users, num_items, emb_dim: int = 64):

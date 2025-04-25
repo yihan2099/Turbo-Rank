@@ -1,6 +1,8 @@
 """Simple factory so CLI scripts stay tiny."""
+
+from models.nrms import NRMSModel
 from models.two_tower import TwoTowerModel
-from models.nrms       import NRMSModel
+
 
 def create_model(name: str, **kwargs):
     name = name.lower()

@@ -1,6 +1,10 @@
 """Thin wrappers so encoders can be MLflow-serialised transparently."""
-import tempfile, joblib
+
+import tempfile
+
+import joblib
 from sklearn.preprocessing import LabelEncoder
+
 
 def dump_encoder_tmp(enc: LabelEncoder) -> str:
     tmp = tempfile.NamedTemporaryFile(suffix=".joblib", delete=False)

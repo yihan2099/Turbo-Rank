@@ -1,9 +1,10 @@
 import logging
-from pyspark.sql import SparkSession, DataFrame
-from pyspark.sql.functions import split, col, when, lit
+
+from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql.functions import col, lit, split, when
 from pyspark.sql.types import StringType
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Configuration for file paths (relative to project root)
 PATHS = {
@@ -17,17 +18,29 @@ PATHS = {
     "processed_behaviors_dev": "data/processed/dev/behaviors.parquet",
 }
 
-NEWS_COLUMNS = ["id", "category", "subcategory", "title", "abstract", "url", "title_entities", "abstract_entities"]
+NEWS_COLUMNS = [
+    "id",
+    "category",
+    "subcategory",
+    "title",
+    "abstract",
+    "url",
+    "title_entities",
+    "abstract_entities",
+]
 BEHAVIORS_COLUMNS = ["impression_id", "user_id", "timestamp", "history", "impressions"]
+
 
 def create_spark_session(app_name: str = "MIND Preprocessing") -> SparkSession:
     """Creates and returns a Spark session."""
     logging.info(f"Starting Spark session: {app_name}")
-    spark = (SparkSession.builder
-             .appName(app_name)
-             .config("spark.sql.parquet.writeLegacyFormat", "true") # Optional: for compatibility
-             .getOrCreate())
+    spark = (
+        SparkSession.builder.appName(app_name)
+        .config("spark.sql.parquet.writeLegacyFormat", "true")  # Optional: for compatibility
+        .getOrCreate()
+    )
     return spark
+
 
 def load_tsv(spark: SparkSession, path: str, schema: list[str]) -> DataFrame:
     """Loads a TSV file into a Spark DataFrame with specified column names."""
@@ -36,11 +49,13 @@ def load_tsv(spark: SparkSession, path: str, schema: list[str]) -> DataFrame:
     df = df.toDF(*schema)
     return df
 
+
 def preprocess_news(df: DataFrame) -> DataFrame:
     """Basic preprocessing for news data (currently just returns input)."""
     logging.info("Preprocessing news data...")
     # Add any news-specific preprocessing here if needed in the future
     return df
+
 
 def preprocess_behaviors(df: DataFrame) -> DataFrame:
     """Preprocesses behaviors data: handles null history and splits history/impressions."""
@@ -48,17 +63,19 @@ def preprocess_behaviors(df: DataFrame) -> DataFrame:
     # Handle potential nulls in history before splitting
     df = df.withColumn(
         "history",
-        when(col("history").isNull(), lit(None).cast(StringType())).otherwise(col("history"))
+        when(col("history").isNull(), lit(None).cast(StringType())).otherwise(col("history")),
     )
     # Split history and impressions strings into arrays
     df = df.withColumn("history", split(col("history"), " "))
     df = df.withColumn("impressions", split(col("impressions"), " "))
     return df
 
+
 def save_parquet(df: DataFrame, path: str):
     """Saves a DataFrame to Parquet format."""
     logging.info(f"Saving DataFrame to Parquet: {path}")
     df.write.mode("overwrite").parquet(path)
+
 
 def main():
     spark = create_spark_session()
@@ -89,6 +106,7 @@ def main():
     finally:
         logging.info("Stopping Spark session.")
         spark.stop()
+
 
 if __name__ == "__main__":
     main()
