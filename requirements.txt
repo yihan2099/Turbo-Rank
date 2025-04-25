@@ -17,4 +17,5 @@ fastparquet
 transformers[torch]
 mlflow
 shap
+torchmetrics
 -e .

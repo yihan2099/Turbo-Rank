@@ -1,17 +1,34 @@
-"""Tensor-friendly NRMS dataset."""
+"""Memory-efficient Dataset for NRMS."""
 
+from __future__ import annotations
+
+from typing import Sequence
+
+import numpy as np
 import torch
 from torch.utils.data import Dataset
 
 
 class NRMSDataset(Dataset):
-    def __init__(self, cand, hist, labels):
-        self.cand = torch.tensor(cand, dtype=torch.long)  # (N, L)
-        self.hist = torch.tensor(hist, dtype=torch.long)  # (N, H, L)
-        self.label = torch.tensor(labels, dtype=torch.float32)  # (N)
+    def __init__(
+        self,
+        cand: np.ndarray | Sequence,
+        hist: np.ndarray | Sequence,
+        labels: np.ndarray | Sequence,
+    ):
+        assert len(cand) == len(hist) == len(labels)
+        self.cand, self.hist, self.labels = cand, hist, labels
 
-    def __len__(self):
-        return len(self.label)
+    # -------------------------------------------------------------
 
-    def __getitem__(self, idx):
-        return {"cand": self.cand[idx], "hist": self.hist[idx], "label": self.label[idx]}
+    def __len__(self) -> int:
+        return len(self.labels)
+
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
+        # torch.as_tensor() makes a *writable* copy only when necessary,
+        # suppressing the “NumPy array is not writable” warning.
+        return {
+            "cand": torch.as_tensor(self.cand[idx], dtype=torch.long),
+            "hist": torch.as_tensor(self.hist[idx], dtype=torch.long),
+            "label": torch.as_tensor(self.labels[idx], dtype=torch.float32),
+        }
