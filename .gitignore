@@ -4,6 +4,7 @@
 # Model Artifacts
 /models/
 /mlruns/
+/turbo_rank/mlruns/
 
 # Mac OS-specific storage files
 .DS_Store
