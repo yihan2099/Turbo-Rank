@@ -1,7 +1,7 @@
 """
 Hyper-parameter sweep for NRMS using Optuna + MLflow
 Run with:
-    python -m cli.tune_nrms_optuna --trials 50 --gpus 4
+    PYTHONPATH=. python turbo_rank/cli/tune_nrms_optuna.py --trials 50 --gpus 4
     optuna-dashboard sqlite:///{}.db  # or point to your RDB backend
     mlflow ui
 """
@@ -28,11 +28,12 @@ def build_cli_cmd(trial, n_gpus):
     # ---- build torchrun command --------------------------------------------
     env = os.environ.copy()
     env["CUDA_VISIBLE_DEVICES"] = ",".join(map(str, range(n_gpus)))
+    env["PYTHONPATH"] = str(REPO_ROOT / "turbo_rank")
 
     cmd = [
         sys.executable, "-m", "torch.distributed.run",
         "--standalone", f"--nproc_per_node={n_gpus}",
-        str(REPO_ROOT / "cli" / "train_nrms_ddp.py"),
+        str(REPO_ROOT / "turbo_rank" / "cli" / "train_nrms_ddp.py"),
         "--epochs", "4",
         "--amp",
         "--batch", str(batch),
@@ -79,7 +80,7 @@ def main():
     mlflc = MLflowCallback(
         tracking_uri = mlflow.get_tracking_uri(),
         metric_name  = "val_auc",
-        nest_trials  = True,
+        mlflow_kwargs = {"nested": True},
     )
     study.optimize(
         lambda t: objective(t, args.gpus),

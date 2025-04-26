@@ -18,4 +18,6 @@ transformers[torch]
 mlflow
 shap
 torchmetrics
+optuna
+optuna-integration[mlflow]
 -e .
