@@ -4,6 +4,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  # turbo_rank/
 DATA_DIR = PROJECT_ROOT / "data" / "processed" / "small"  # memmap cache
+MLFLOW_TRACKING_URI = "http://localhost:5010"  # MLflow server
 MLFLOW_EXPERIMENT = "turbo_rank_experiments"
 
 # Lazily ensure directories exist (only when imported in a writer context).

@@ -1,3 +1,10 @@
+"""
+Train NRMS model on the small dataset.
+
+Usage:
+    python -m turbo_rank.cli.train_nrms \
+"""
+
 from argparse import ArgumentParser
 
 import mlflow

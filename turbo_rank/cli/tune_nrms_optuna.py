@@ -7,23 +7,33 @@ Run with:
 """
 
 from __future__ import annotations
-import argparse, os, multiprocessing as mp, subprocess, json, uuid, sys, tempfile
+
+import argparse
+import multiprocessing as mp
+import os
 from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import uuid
 
 import mlflow
 import optuna
 from optuna.integration.mlflow import MLflowCallback
 
+from turbo_rank.config.paths import MLFLOW_TRACKING_URI
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
 
 # ----------------------------------------------------------------------
 def build_cli_cmd(trial, n_gpus):
     """Return the shell command that launches one NRMS training."""
     # ---- sample hyper-params ------------------------------------------------
-    embed_dim   = trial.suggest_categorical("embed_dim", [128, 256, 384])
-    heads       = trial.suggest_categorical("heads",     [4, 8, 12])
-    lr          = trial.suggest_loguniform("lr", 1e-4, 3e-3)
-    batch       = trial.suggest_categorical("batch", [64, 128, 256])
+    embed_dim = trial.suggest_categorical("embed_dim", [128, 256, 384])
+    heads = trial.suggest_categorical("heads", [4, 8, 12])
+    lr = trial.suggest_float("lr", 1e-4, 1e-2, log=True)
+    batch = trial.suggest_categorical("batch", [64, 128, 256])
 
     # ---- build torchrun command --------------------------------------------
     env = os.environ.copy()
@@ -31,16 +41,25 @@ def build_cli_cmd(trial, n_gpus):
     env["PYTHONPATH"] = str(REPO_ROOT / "turbo_rank")
 
     cmd = [
-        sys.executable, "-m", "torch.distributed.run",
-        "--standalone", f"--nproc_per_node={n_gpus}",
+        sys.executable,
+        "-m",
+        "torch.distributed.run",
+        "--standalone",
+        f"--nproc_per_node={n_gpus}",
         str(REPO_ROOT / "turbo_rank" / "cli" / "train_nrms_ddp.py"),
-        "--epochs", "4",
+        "--epochs",
+        "4",
         "--amp",
-        "--batch", str(batch),
-        "--embed_dim", str(embed_dim),
-        "--heads", str(heads),
-        "--lr", f"{lr:.5g}",
-        "--num_workers", str(max(mp.cpu_count() // n_gpus, 1)),
+        "--batch",
+        str(batch),
+        "--embed_dim",
+        str(embed_dim),
+        "--heads",
+        str(heads),
+        "--lr",
+        f"{lr:.5g}",
+        "--num_workers",
+        str(max(mp.cpu_count() // n_gpus, 1)),
     ]
     return cmd, env
 
@@ -61,7 +80,7 @@ def objective(trial, n_gpus):
         # load val-AUC from MLflow
         run_id = run_id_file.read_text().strip()
         client = mlflow.tracking.MlflowClient()
-        auc    = client.get_metric_history(run_id, "val_auc")[-1].value
+        auc = client.get_metric_history(run_id, "val_auc")[-1].value
         trial.set_user_attr("mlflow_run_id", run_id)
         return auc
 
@@ -69,18 +88,18 @@ def objective(trial, n_gpus):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--trials", type=int, default=40)
-    ap.add_argument("--gpus",   type=int, default=1)
+    ap.add_argument("--gpus", type=int, default=1)
     args = ap.parse_args()
 
     study = optuna.create_study(
         direction="maximize",
-        pruner   = optuna.pruners.MedianPruner(n_startup_trials=5),
+        pruner=optuna.pruners.MedianPruner(n_startup_trials=5),
         study_name=f"NRMS-{uuid.uuid4().hex[:6]}",
     )
     mlflc = MLflowCallback(
-        tracking_uri = mlflow.get_tracking_uri(),
-        metric_name  = "val_auc",
-        mlflow_kwargs = {"nested": True},
+        tracking_uri=MLFLOW_TRACKING_URI,
+        metric_name="val_auc",
+        mlflow_kwargs={"nested": True},
     )
     study.optimize(
         lambda t: objective(t, args.gpus),

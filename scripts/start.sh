@@ -1,1 +1,0 @@
-PYTHONPATH=. python cli/train_nrms.py

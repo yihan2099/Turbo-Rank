@@ -5,6 +5,8 @@
 /models/
 /mlruns/
 /turbo_rank/mlruns/
+/mlflow.db
+/artifacts/
 
 # Mac OS-specific storage files
 .DS_Store

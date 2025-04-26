@@ -20,7 +20,7 @@ import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader, DistributedSampler
 
-from config.paths import DATA_DIR, MLFLOW_EXPERIMENT
+from config.paths import DATA_DIR, MLFLOW_EXPERIMENT, MLFLOW_TRACKING_URI
 from data.preprocess import load_and_prepare_nrms
 from datasets.nrms import NRMSDataset
 from engine.ddp_train_loop import cleanup_ddp, fit_ddp, setup_ddp
@@ -80,7 +80,7 @@ def main(args):
     #     load_and_prepare_nrms(DATA_DIR, regen=True)
     # torch.distributed.barrier()
     cand_tr, hist_tr, lbl_tr, vocab = load_and_prepare_nrms(DATA_DIR, split="train")
-    cand_va, hist_va, lbl_va, _     = load_and_prepare_nrms(DATA_DIR, split="dev")
+    cand_va, hist_va, lbl_va, _ = load_and_prepare_nrms(DATA_DIR, split="dev")
 
     dl_tr = build_dataloader(cand_tr, hist_tr, lbl_tr, args)
     dl_va = build_dataloader(cand_va, hist_va, lbl_va, args)
@@ -98,7 +98,10 @@ def main(args):
 
     # 3 ▸ MLflow (rank-0 only)
     if local_rank == 0:
-        # ── (a) enable system-metrics sampling every 10 s ────────────────────
+        # ── (a) MLflow tracking server
+        mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+
+        # ── (b) enable system-metrics sampling every 10 s ────────────────────
         mlflow.system_metrics.enable_system_metrics_logging()
         mlflow.system_metrics.set_system_metrics_sampling_interval(10)
 
@@ -122,17 +125,18 @@ def main(args):
             tags={"git_sha": git_sha} if git_sha else None,
         ) as run:
             # ▲ write run-id back to the tuning driver (rank-0 only)
-            if (rid_f := os.getenv("MLFLOW_RUN_ID_FILE")):
+            if rid_f := os.getenv("MLFLOW_RUN_ID_FILE"):
                 Path(rid_f).write_text(run.info.run_id)
-            
+
             # params – every CLI flag
             mlflow.log_params(vars(args))
 
             # training
-            best_auc = fit_ddp(model, dl_tr, dl_va,
-                   epochs=args.epochs, lr=args.lr, use_amp=args.amp)
+            best_auc = fit_ddp(
+                model, dl_tr, dl_va, epochs=args.epochs, lr=args.lr, use_amp=args.amp
+            )
             mlflow.log_metric("val_auc", best_auc)
-            
+
             # final model (DDP unwrap)
             mlflow.pytorch.log_model(model.module, artifact_path="model")
 
@@ -140,9 +144,7 @@ def main(args):
 
     else:
         # non-zero ranks just train
-        fit_ddp(model, dl_tr, dl_va,
-                   epochs=args.epochs, lr=args.lr, use_amp=args.amp)
-
+        fit_ddp(model, dl_tr, dl_va, epochs=args.epochs, lr=args.lr, use_amp=args.amp)
 
     cleanup_ddp()
 
