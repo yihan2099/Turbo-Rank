@@ -1,0 +1,1 @@
+python -c "import optuna; optuna.storages.RDBStorage('sqlite:///db.sqlite3')"

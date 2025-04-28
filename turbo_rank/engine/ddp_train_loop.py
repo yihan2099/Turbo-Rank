@@ -50,6 +50,8 @@ def fit_ddp(
     scaler = GradScaler(enabled=use_amp)
     auroc = BinaryAUROC().to(device)
 
+    global_step = 0
+
     best_auc = 0.0
     for ep in range(epochs):
         if isinstance(dl_train.sampler, DistributedSampler):
@@ -66,6 +68,12 @@ def fit_ddp(
             scaler.step(optim)
             scaler.update()
             optim.zero_grad(set_to_none=True)
+
+            # ───── per-batch logging ──────────────────────────────────────
+            if rank == 0:  # only one process logs
+                mlflow.log_metric("batch_loss", loss.item(), step=global_step)
+            global_step += 1  # increment every batch
+            # -----------------------------------------------------------------
 
             losses.append(loss.item())
             auroc.update(p, y)

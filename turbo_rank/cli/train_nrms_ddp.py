@@ -120,7 +120,10 @@ def main(args):
         except Exception:
             pass
 
+        run_id = os.getenv("MLFLOW_RUN_ID")
+
         with mlflow.start_run(
+            run_id=run_id,
             log_system_metrics=True,  #  ← captures CPU / GPU / I/O
             tags={"git_sha": git_sha} if git_sha else None,
         ) as run:

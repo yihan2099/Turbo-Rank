@@ -20,4 +20,5 @@ shap
 torchmetrics
 optuna
 optuna-integration[mlflow]
+optuna-dashboard
 -e .

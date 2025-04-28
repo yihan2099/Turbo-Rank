@@ -1,8 +1,8 @@
 """
 Hyper-parameter sweep for NRMS using Optuna + MLflow
 Run with:
-    PYTHONPATH=. python turbo_rank/cli/tune_nrms_optuna.py --trials 50 --gpus 4
-    optuna-dashboard sqlite:///{}.db  # or point to your RDB backend
+    PYTHONPATH=. python cli/tune_nrms_optuna.py --trials 50 --gpus 4
+    optuna-dashboard sqlite:///db.sqlite3 --port 4000    # or point to your RDB backend
     mlflow ui
 """
 
@@ -13,17 +13,15 @@ import multiprocessing as mp
 import os
 from pathlib import Path
 import subprocess
-import sys
-import tempfile
-import uuid
 
 import mlflow
 import optuna
-from optuna.integration.mlflow import MLflowCallback
 
-from turbo_rank.config.paths import MLFLOW_TRACKING_URI
+from turbo_rank.config.paths import MLFLOW_EXPERIMENT, MLFLOW_TRACKING_URI
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+SWEEP_NAME = "NRMS_optuna_sweep"
 
 
 # ----------------------------------------------------------------------
@@ -35,18 +33,20 @@ def build_cli_cmd(trial, n_gpus):
     lr = trial.suggest_float("lr", 1e-4, 1e-2, log=True)
     batch = trial.suggest_categorical("batch", [64, 128, 256])
 
+    # bail out early if incompatible
+    if embed_dim % heads != 0:  # ⇦ key line
+        raise optuna.TrialPruned(f"{embed_dim=} not divisible by {heads=}")
+
     # ---- build torchrun command --------------------------------------------
     env = os.environ.copy()
     env["CUDA_VISIBLE_DEVICES"] = ",".join(map(str, range(n_gpus)))
-    env["PYTHONPATH"] = str(REPO_ROOT / "turbo_rank")
+    env["PYTHONPATH"] = f"{REPO_ROOT}:{env.get('PYTHONPATH', '')}"
 
     cmd = [
-        sys.executable,
-        "-m",
-        "torch.distributed.run",
+        "torchrun",
         "--standalone",
         f"--nproc_per_node={n_gpus}",
-        str(REPO_ROOT / "turbo_rank" / "cli" / "train_nrms_ddp.py"),
+        "cli/train_nrms_ddp.py",
         "--epochs",
         "4",
         "--amp",
@@ -65,23 +65,24 @@ def build_cli_cmd(trial, n_gpus):
 
 
 def objective(trial, n_gpus):
-    cmd, env = build_cli_cmd(trial, n_gpus)
-
-    # run; MLflow autolog inside the script logs the val-AUC metric
-    with tempfile.TemporaryDirectory() as tmp:
-        run_id_file = Path(tmp) / "run_id.txt"
-        env["MLFLOW_RUN_ID_FILE"] = str(run_id_file)  # custom: store run-id
-
-        completed = subprocess.run(cmd, env=env, capture_output=True, text=True)
+    # -------- child run (one per trial) --------------------
+    with mlflow.start_run(
+        run_name=f"trial_{trial.number}",
+        nested=True,  # ← child of the sweep run
+        tags=trial.params,  # record hyper-params immediately
+    ) as active:
+        run_id = active.info.run_id
+        cmd, env = build_cli_cmd(trial, n_gpus)
+        env["MLFLOW_RUN_ID"] = run_id
+        completed = subprocess.run(
+            cmd, env=env, cwd=str(REPO_ROOT), capture_output=True, text=True
+        )
         if completed.returncode != 0:
-            # mark the trial as failed
-            raise optuna.TrialPruned(f"script failed:\n{completed.stderr}")
+            raise optuna.TrialPruned(completed.stderr)
 
-        # load val-AUC from MLflow
-        run_id = run_id_file.read_text().strip()
-        client = mlflow.tracking.MlflowClient()
+        # read metric the worker just logged
+        client = mlflow.MlflowClient()
         auc = client.get_metric_history(run_id, "val_auc")[-1].value
-        trial.set_user_attr("mlflow_run_id", run_id)
         return auc
 
 
@@ -91,25 +92,33 @@ def main():
     ap.add_argument("--gpus", type=int, default=1)
     args = ap.parse_args()
 
-    study = optuna.create_study(
-        direction="maximize",
-        pruner=optuna.pruners.MedianPruner(n_startup_trials=5),
-        study_name=f"NRMS-{uuid.uuid4().hex[:6]}",
-    )
-    mlflc = MLflowCallback(
-        tracking_uri=MLFLOW_TRACKING_URI,
-        metric_name="val_auc",
-        mlflow_kwargs={"nested": True},
-    )
-    study.optimize(
-        lambda t: objective(t, args.gpus),
-        n_trials=args.trials,
-        callbacks=[mlflc],
-    )
+    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+    mlflow.set_experiment(MLFLOW_EXPERIMENT)
 
-    print("Best trial:")
-    print(study.best_trial.params)
-    print("MLflow run:", study.best_trial.user_attrs["mlflow_run_id"])
+    with mlflow.start_run(run_name=SWEEP_NAME) as sweep_run:
+        study = optuna.create_study(
+            storage="sqlite:///db.sqlite3",
+            direction="maximize",
+            study_name=SWEEP_NAME,
+            pruner=optuna.pruners.MedianPruner(n_startup_trials=5),
+        )
+        study.optimize(lambda t: objective(t, args.gpus), n_trials=args.trials)
+
+        # ─── log the best trial’s params & value ─────────────────────────────
+        best = study.best_trial
+        # logs each hyperparam as an MLflow parameter
+        mlflow.log_params(best.params)
+        # log the best objective (e.g. validation AUC) as a metric
+        mlflow.log_metric("best_val_auc", best.value)
+
+        # optional: tag the best-trial-number for easy filtering later
+        mlflow.set_tag("optuna.best_trial", best.number)
+
+    # console summary
+    print("Best trial #", best.number)
+    print("  params:", best.params)
+    print("  value :", best.value)
+    print("MLflow sweep run ID:", sweep_run.info.run_id)
 
 
 if __name__ == "__main__":
