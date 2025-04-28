@@ -100,6 +100,7 @@ def main():
             storage="sqlite:///db.sqlite3",
             direction="maximize",
             study_name=SWEEP_NAME,
+            load_if_exists=True,
             pruner=optuna.pruners.MedianPruner(n_startup_trials=5),
         )
         study.optimize(lambda t: objective(t, args.gpus), n_trials=args.trials)
