@@ -2,7 +2,7 @@
 Train NRMS model on the small dataset.
 
 Usage:
-    python -m turbo_rank.cli.train_nrms \
+    PYTHONPATH=. python cli/train_nrms.py --epochs 3 --batch 128 \
 """
 
 from argparse import ArgumentParser
