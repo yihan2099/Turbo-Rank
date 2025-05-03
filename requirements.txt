@@ -21,4 +21,8 @@ torchmetrics
 optuna
 optuna-integration[mlflow]
 optuna-dashboard
+onnx
+onnxruntime
+onnxruntime-gpu
+onnxruntime-tools
 -e .

@@ -6,7 +6,6 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 # ---------------------------------------------------------------------------
 # Utilities
@@ -29,17 +28,14 @@ class _ScaledDotSelfAttention(nn.Module):
         self.attn._reset_parameters()
 
     def forward(self, x: torch.Tensor, lengths: torch.Tensor | None = None) -> torch.Tensor:
-        # Optionally skip padded tokens if all lengths > 0
+        # Construct bool mask: True = pad to ignore
+        key_padding_mask = None
         if lengths is not None:
-            lengths_cpu = lengths.cpu()
-            if torch.all(lengths_cpu > 0):
-                packed = pack_padded_sequence(
-                    x, lengths_cpu, batch_first=True, enforce_sorted=False
-                )
-                padded, _ = pad_packed_sequence(packed, batch_first=True, total_length=x.size(1))
-                x = padded
-        # Self-attention
-        y, _ = self.attn(x, x, x, need_weights=False)
+            L = x.size(1)
+            key_padding_mask = (
+                torch.arange(L, device=x.device)[None, :] >= lengths[:, None]
+            )  # (B, L)
+        y, _ = self.attn(x, x, x, key_padding_mask=key_padding_mask, need_weights=False)
         return y
 
 
