@@ -22,6 +22,7 @@ optuna
 optuna-integration[mlflow]
 optuna-dashboard
 onnx
+onnxscript
 onnxruntime
 onnxruntime-gpu
 onnxruntime-tools

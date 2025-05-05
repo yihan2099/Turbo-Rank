@@ -8,6 +8,10 @@
 /mlflow.db
 /artifacts/
 
+# C++ 
+/deploy/lib/
+/deploy/include/
+
 # Mac OS-specific storage files
 .DS_Store
 
