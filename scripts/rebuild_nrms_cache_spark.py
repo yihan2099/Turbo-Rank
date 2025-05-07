@@ -5,8 +5,9 @@ Usage:
     PYSPARK_PYTHON=$(which python) spark-submit --driver-memory 100g \
         scripts/rebuild_nrms_cache_spark.py
 """
-from pathlib import Path
 import logging
+from pathlib import Path
+
 from turbo_rank.data.preprocess_spark import load_and_prepare_nrms
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")

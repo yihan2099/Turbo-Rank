@@ -4,8 +4,9 @@ Re-build NRMS memmap caches for both 'train' and 'dev' splits.
 Run:  python scripts/rebuild_nrms_cache.py
 """
 
-from pathlib import Path
 import logging
+from pathlib import Path
+
 from turbo_rank.data.preprocess import load_and_prepare_nrms
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")

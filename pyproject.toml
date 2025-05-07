@@ -21,7 +21,19 @@ requires-python = ">=3.10, <4.0"
 [tool.ruff]
 line-length = 99
 src = ["turbo_rank"]
-include = ["pyproject.toml", "turbo_rank/**/*.py"]
+include = [
+    "pyproject.toml",
+    "turbo_rank/**/*.py",
+    "deploy/**/*.py",
+    "deploy/**/*.cpp",
+    "deploy/**/*.h",
+    "deploy/**/*.hpp",
+    "deploy/**/CMakeLists.txt",
+    "deploy/**/Makefile",
+    "docker/**/*.Dockerfile",
+    "docker/**/*.sh",
+    "**/*.py"
+]
 
 [tool.ruff.lint]
 extend-select = ["I"]  # Add import sorting

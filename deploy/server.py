@@ -1,48 +1,40 @@
 import argparse
-import subprocess
+from concurrent import futures
+import logging
+from pathlib import Path
 import sys
 import time
-from concurrent import futures
-from pathlib import Path
 
 import grpc
-from grpc_health.v1 import health_pb2, health_pb2_grpc
-from grpc_health.v1.health import HealthServicer
 
-class InferenceServicer:
-    def __init__(self, exe_path, model_path):
-        self.exe_path = exe_path
-        self.model_path = model_path
-        # Initialize backend subprocess here if needed
+# Set up logging
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--backend", choices=["onnxrt", "tensorrt"], required=True)
-    parser.add_argument("--model", default="models/onnx/model.onnx")
+    parser.add_argument("--model", default="models/onnx/nrms.onnx")
     parser.add_argument("--port", type=int, default=50051)
+    parser.add_argument("--max_workers", type=int, default=10)
     args = parser.parse_args()
 
+    # Get the executable path for the selected backend
     exe = {
         "onnxrt": Path("deploy/build/infer_ort"),
         "tensorrt": Path("deploy/build/infer_trt")
     }[args.backend]
-
+    
     # Create gRPC server
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    
-    # Add health service
-    health_servicer = HealthServicer()
-    health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
-    
-    # Set all services to SERVING status
-    health_servicer.set('', health_pb2.HealthCheckResponse.SERVING)
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=args.max_workers))
     
     # Start server
     server.add_insecure_port(f'[::]:{args.port}')
     server.start()
     
-    print(f"Server started on port {args.port}")
-    print(f"Using {args.backend} backend with model {args.model}")
+    logger.info(f"Server started on port {args.port}")
+    logger.info(f"Using {args.backend} backend with model {args.model}")
     
     try:
         while True:

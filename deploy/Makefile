@@ -87,7 +87,8 @@ $(TRT_BUILD)/infer_trt:
 	@echo "⇒ Configuring TensorRT backend…"
 	cmake -S . -B $(TRT_BUILD) \
 	      -DBACKEND_ORT=OFF -DBACKEND_TRT=ON \
-	      -DTRT_ROOT=$(TRT_ROOT)\
+		  -DCMAKE_CXX_FLAGS="-I/usr/local/cuda/include" \
+	      -DTRT_ROOT=$(TRT_ROOT) \
 		  -DTRT_INCLUDE_DIR=/usr/include/x86_64-linux-gnu \
 		  -DNVINFER_LIB=/usr/lib/x86_64-linux-gnu/libnvinfer.so \
 		  -DNVONNXPARSER_LIB=/usr/lib/x86_64-linux-gnu/libnvonnxparser.so

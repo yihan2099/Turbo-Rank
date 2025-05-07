@@ -1,0 +1,70 @@
+{
+  "name": "Turbo-Rank Development",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  
+  // Set container-specific settings
+  "settings": { 
+    "python.defaultInterpreterPath": "/usr/bin/python3",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.formatting.provider": "black",
+    "python.formatting.blackPath": "/home/vscode/.local/bin/black",
+    "editor.formatOnSave": true,
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "terminal.integrated.profiles.linux": {
+      "bash": {
+        "path": "/bin/bash"
+      }
+    }
+  },
+
+  // Add extensions
+  "extensions": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-vscode.cmake-tools",
+    "ms-vscode.cpptools",
+    "ms-vscode.cpptools-extension-pack",
+    "streetsidesoftware.code-spell-checker",
+    "mhutchie.git-graph",
+    "github.vscode-pull-request-github",
+    "eamodio.gitlens",
+    "ms-toolsai.jupyter"
+  ],
+
+  // Mount the host source code directory
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace/turbo-rank,type=bind,consistency=cached",
+  "workspaceFolder": "/workspace/turbo-rank",
+
+  // Update user ID to match host
+  "updateRemoteUserUID": true,
+
+  // GPU support
+  "runArgs": [
+    "--gpus=all",
+    "--ipc=host",
+    "--cap-add=SYS_PTRACE",
+    "--security-opt=seccomp=unconfined"
+  ],
+
+  // Make sure project requirements are installed after container is created
+  "postCreateCommand": "pip install --user -r requirements.txt && pip install --user -e .",
+
+  // Environment variables
+  "remoteEnv": {
+    "TRT_ROOT": "/usr/local/TensorRT",
+    "ORT_ROOT": "/usr/local/onnxruntime-1.21.1/onnxruntime-linux-x64-gpu-1.21.1",
+    "LD_LIBRARY_PATH": "$LD_LIBRARY_PATH:/usr/local/lib:/usr/lib/x86_64-linux-gnu",
+    "LIBRARY_PATH": "$LIBRARY_PATH:/usr/lib/x86_64-linux-gnu",
+    "CPATH": "$CPATH:/usr/include"
+  },
+
+  // Optional features to add capabilities
+  "features": {
+    // Uncomment if you want Docker in Docker support
+    // "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  }
+} 
