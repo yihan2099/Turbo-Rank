@@ -28,5 +28,25 @@ RUN apt-get update -qq && \
     apt-get purge -y build-essential cmake && \
     apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
-# 6 — Default entry-point
-CMD ["python", "-m", "deploy.server", "--backend", "tensorrt"]
+# Install grpc-health-probe for health checks
+RUN apt-get update && apt-get install -y wget && \
+    wget -qO/bin/grpc-health-probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/v0.4.19/grpc-health-probe-linux-amd64 && \
+    chmod +x /bin/grpc-health-probe && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Python packages
+RUN pip install --no-cache-dir \
+    grpcio \
+    grpcio-tools \
+    grpcio-health-checking \
+    protobuf \
+    numpy
+
+# Copy entrypoint script
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Default entry-point
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["--backend", "tensorrt"]

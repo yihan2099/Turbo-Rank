@@ -13,6 +13,12 @@ services:
       - ./models:/workspace/turbo-rank/models:ro
     ports:
       - "50051:50051"
+    healthcheck:
+      test: ["CMD", "grpc-health-probe", "-addr=localhost:50051", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   ort:
     build:
@@ -26,3 +32,9 @@ services:
       - ./models:/workspace/turbo-rank/models:ro
     ports:
       - "50052:50051"   # avoid port clash
+    healthcheck:
+      test: ["CMD", "grpc-health-probe", "-addr=localhost:50051", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
