@@ -26,4 +26,5 @@ onnxscript
 onnxruntime
 onnxruntime-gpu
 onnxruntime-tools
--e .
+torch-tensorrt
+torchvision

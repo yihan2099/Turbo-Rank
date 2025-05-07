@@ -9,8 +9,8 @@
 /artifacts/
 
 # C++ 
-/deploy/lib/
-/deploy/include/
+/deploy/ort/
+/deploy/trt/
 
 # Mac OS-specific storage files
 .DS_Store

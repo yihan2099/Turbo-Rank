@@ -1,0 +1,9 @@
+# keep images small
+.git
+__pycache__/
+*.ipynb
+.mlrun/
+*.pt
+*.onnx
+artifacts/
+data/

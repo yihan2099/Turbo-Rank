@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  trt:
+    build:
+      context: .
+      dockerfile: docker/trt.Dockerfile
+    image: turbo-rank-trt:latest
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - ./models:/workspace/turbo-rank/models:ro
+    ports:
+      - "50051:50051"
+
+  ort:
+    build:
+      context: .
+      dockerfile: docker/ort.Dockerfile
+    image: turbo-rank-ort:latest
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - ./models:/workspace/turbo-rank/models:ro
+    ports:
+      - "50052:50051"   # avoid port clash
