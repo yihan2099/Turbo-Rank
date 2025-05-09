@@ -5,6 +5,7 @@ Usage:
     PYSPARK_PYTHON=$(which python) spark-submit --driver-memory 100g \
         scripts/rebuild_nrms_cache_spark.py
 """
+
 import logging
 from pathlib import Path
 
@@ -23,5 +24,5 @@ for split in ("train", "dev"):
         hist.shape,
         len(lbl),
         vocab,
-        (DATA_DIR / split / 'cache').resolve(),
+        (DATA_DIR / split / "cache").resolve(),
     )

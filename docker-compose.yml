@@ -4,7 +4,7 @@ services:
   trt:
     build:
       context: .
-      dockerfile: docker/trt.Dockerfile
+      dockerfile: deploy/docker/trt.Dockerfile
     image: turbo-rank-trt:latest
     runtime: nvidia
     environment:
@@ -23,7 +23,7 @@ services:
   ort:
     build:
       context: .
-      dockerfile: docker/ort.Dockerfile
+      dockerfile: deploy/docker/ort.Dockerfile
     image: turbo-rank-ort:latest
     runtime: nvidia
     environment:
@@ -37,3 +37,31 @@ services:
     # interactive shell you can also add:
     stdin_open: true
     tty: true
+
+  triton:
+    build:
+      context: .
+      dockerfile: server/docker/triton.dockerfile
+    image: turbo-rank-triton:latest
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      # If you prefer mounting at runtime instead of bake-in
+      - ./server/models:/models:ro
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+      - "8002:8002"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/v2/health/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

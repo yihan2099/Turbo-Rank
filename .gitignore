@@ -12,6 +12,15 @@
 /deploy/ort/
 /deploy/trt/
 
+# ONNX 
+*.onnx
+*.onnx.data
+
+# Triton models artifacts
+# /server/models
+# !/server/models/onnx/config.pbtxt
+
+
 # Mac OS-specific storage files
 .DS_Store
 

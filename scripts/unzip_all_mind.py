@@ -2,13 +2,13 @@
 from pathlib import Path
 from zipfile import ZipFile
 
-'''
+"""
 Unzip all MIND dataset files.
 
 Usage
 -----
 $ python scripts/unzip_all_mind.py
-'''
+"""
 
 mind_dir = Path("data/mind")
 

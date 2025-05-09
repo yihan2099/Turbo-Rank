@@ -28,3 +28,4 @@ onnxruntime-gpu
 onnxruntime-tools
 torch-tensorrt
 torchvision
+pre-commit

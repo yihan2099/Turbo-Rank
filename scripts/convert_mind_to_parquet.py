@@ -11,6 +11,7 @@ $ PYSPARK_PYTHON=python3 spark-submit scripts/convert_mind_to_parquet.py \
 Only needs to be run once after downloading the raw .zip files. The training
 code never touches Spark.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -40,10 +41,19 @@ BEH_COLS = ["impression_id", "user_id", "timestamp", "history", "impressions"]
 
 def parse_args():
     p = argparse.ArgumentParser(description="Convert raw MIND TSV to Parquet using Spark")
-    p.add_argument("--input-dir", type=Path, required=True, help="Folder that contains MINDsmall_train/news.tsv etc.")
+    p.add_argument(
+        "--input-dir",
+        type=Path,
+        required=True,
+        help="Folder that contains MINDsmall_train/news.tsv etc.",
+    )
     p.add_argument("--output-dir", type=Path, required=True, help="Destination root for Parquet")
     p.add_argument("--size", choices=["small", "large"], default="small", help="MIND release size")
-    p.add_argument("--splits", default="train", help="Comma‑separated list of dataset splits to process (train,dev,test)")
+    p.add_argument(
+        "--splits",
+        default="train",
+        help="Comma‑separated list of dataset splits to process (train,dev,test)",
+    )
     return p.parse_args()
 
 
@@ -67,11 +77,11 @@ def preprocess_news(df: DataFrame) -> DataFrame:
 
 def preprocess_behaviors(df: DataFrame) -> DataFrame:
     df = df.withColumn(
-        "history", when(col("history").isNull(), lit(None).cast(StringType())).otherwise(col("history"))
+        "history",
+        when(col("history").isNull(), lit(None).cast(StringType())).otherwise(col("history")),
     )
-    return (
-        df.withColumn("history", split(col("history"), " "))
-        .withColumn("impressions", split(col("impressions"), " "))
+    return df.withColumn("history", split(col("history"), " ")).withColumn(
+        "impressions", split(col("impressions"), " ")
     )
 
 

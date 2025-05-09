@@ -17,7 +17,7 @@ for split in ("train", "dev"):
     cand, hist, lbl, vocab = load_and_prepare_nrms(
         DATA_DIR,
         split=split,
-        regen=True,           # ⇦ force rebuild
+        regen=True,  # ⇦ force rebuild
     )
     logging.info(
         "✔️  %s cache rebuilt | cand %s | hist %s | #labels %d | vocab %d | dir %s",
