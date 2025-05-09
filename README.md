@@ -4,58 +4,107 @@
     <img src="https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter" />
 </a>
 
-A short description of the project.
+A high-performance recommendation and ranking system designed for efficient model training, deployment, and serving.
+
+## Project Overview
+
+Turbo-Rank provides a comprehensive framework for building, training, and deploying ranking models with a focus on performance and scalability. It supports various model architectures, including two-tower and NRMS (Neural News Recommendation with Multi-Head Self-Attention), and integrates with MLflow for experiment tracking.
 
 ## Project Organization
 
 ```
-├── LICENSE            <- Open-source license if one is chosen
-├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
-├── README.md          <- The top-level README for developers using this project.
+├── Makefile           <- Makefile with convenience commands
+├── README.md          <- The top-level README for developers using this project
 ├── data
-│   ├── external       <- Data from third party sources.
-│   ├── interim        <- Intermediate data that has been transformed.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
+│   ├── mind/          <- MIND (Microsoft News Dataset) for recommendation tasks
+│   └── processed/     <- The final, canonical data sets for modeling
 │
-├── docs               <- A default mkdocs project; see www.mkdocs.org for details
+├── deploy/            <- Deployment resources and configuration
+│   ├── build/         <- Build artifacts for model deployment
+│   ├── docker/        <- Docker configuration for deployment
+│   └── scripts/       <- Deployment scripts
 │
-├── models             <- Trained and serialized models, model predictions, or model summaries
+├── docs               <- Project documentation
 │
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-│                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
+├── models             <- Trained and serialized models
+│   ├── baseline/      <- Baseline model implementations
+│   └── onnx/          <- ONNX model exports for deployment
 │
-├── pyproject.toml     <- Project configuration file with package metadata for 
-│                         turbo_rank and configuration for tools like black
+├── notebooks          <- Jupyter notebooks for experimentation
 │
-├── references         <- Data dictionaries, manuals, and all other explanatory materials.
+├── pyproject.toml     <- Project configuration file
 │
-├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   └── figures        <- Generated graphics and figures to be used in reporting
+├── references         <- Data dictionaries, manuals, and explanatory materials
 │
-├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-│                         generated with `pip freeze > requirements.txt`
+├── reports            <- Generated analysis reports
+│   └── figures        <- Generated graphics and figures
 │
-├── setup.cfg          <- Configuration file for flake8
+├── requirements.txt   <- The requirements file for reproducing the environment
 │
-└── turbo_rank   <- Source code for use in this project.
-    │
-    ├── __init__.py             <- Makes turbo_rank a Python module
-    │
-    ├── config.py               <- Store useful variables and configuration
-    │
-    ├── dataset.py              <- Scripts to download or generate data
-    │
-    ├── features.py             <- Code to create features for modeling
-    │
-    ├── modeling                
-    │   ├── __init__.py 
-    │   ├── predict.py          <- Code to run model inference with trained models          
-    │   └── train.py            <- Code to train models
-    │
-    └── plots.py                <- Code to create visualizations
+├── server/            <- Serving infrastructure
+│   ├── docker/        <- Server Docker configuration
+│   └── models/        <- Models for serving
+│
+├── tests/             <- Test suite for the project
+│
+└── turbo_rank/        <- Source code for use in this project
+    ├── __init__.py    <- Makes turbo_rank a Python module
+    ├── cli/           <- Command line interface utilities
+    ├── config/        <- Configuration management
+    ├── data/          <- Data loading and processing utilities
+    ├── datasets/      <- Dataset implementations
+    ├── engine/        <- Training and evaluation engines
+    ├── evaluation/    <- Evaluation metrics and utilities
+    ├── models/        <- Model implementations
+    │   ├── nrms.py    <- NRMS model implementation
+    │   └── two_tower.py <- Two-tower model implementation
+    └── plots.py       <- Visualization utilities
 ```
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.10+
+- Make
+- Docker
+- NVIDIA GPU with CUDA support
+- NVIDIA Docker runtime
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/Turbo-Rank.git
+cd Turbo-Rank
+
+# Create and activate a virtual environment (optional but recommended)
+make create_environment
+
+# Install dependencies
+make requirements
+```
+
+### Usage
+
+Training a model:
+```bash
+python -m turbo_rank.cli.train --config configs/nrms.yaml
+```
+
+## MLflow Integration
+
+The project uses MLflow for experiment tracking. You can view the experiment results by running:
+
+```bash
+mlflow ui
+```
+
+Then open your browser and navigate to http://localhost:5000.
+
+## License
+
+This project is licensed under the [LICENSE] - see the LICENSE file for details.
 
 --------
 
