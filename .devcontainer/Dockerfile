@@ -11,21 +11,27 @@ ENV PYTHONUNBUFFERED=1
 # Install development tools
 RUN apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        build-essential \
-        cmake \
-        git \
-        curl \
-        wget \
-        vim \
-        nano \
-        python3-pip \
-        python3-dev \
-        sudo \
-        openssh-client \
-        libssl-dev \
-        libffi-dev && \
+    build-essential \
+    cmake \
+    git \
+    curl \
+    wget \
+    vim \
+    nano \
+    python3-pip \
+    python3-dev \
+    sudo \
+    openssh-client \
+    libssl-dev \
+    libffi-dev \
+    locales && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Configure locale
+RUN localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
 
 # Install ONNX Runtime for GPU
 ENV ORT_VERSION=1.21.1
@@ -53,15 +59,15 @@ ARG USER_GID=$USER_UID
 
 # Check if group exists and create only if it doesn't
 RUN if getent group $USER_GID > /dev/null 2>&1; then \
-        groupmod -n $USERNAME $(getent group $USER_GID | cut -d: -f1); \
+    groupmod -n $USERNAME $(getent group $USER_GID | cut -d: -f1); \
     else \
-        groupadd --gid $USER_GID $USERNAME; \
+    groupadd --gid $USER_GID $USERNAME; \
     fi && \
     # Check if user exists and create only if it doesn't
     if getent passwd $USER_UID > /dev/null 2>&1; then \
-        usermod -l $USERNAME -d /home/$USERNAME -m $(getent passwd $USER_UID | cut -d: -f1); \
+    usermod -l $USERNAME -d /home/$USERNAME -m $(getent passwd $USER_UID | cut -d: -f1); \
     else \
-        useradd --uid $USER_UID --gid $USER_GID -m $USERNAME; \
+    useradd --uid $USER_UID --gid $USER_GID -m $USERNAME; \
     fi && \
     echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
