@@ -45,5 +45,18 @@ endif()
 
 # ─────────── ONNX-Runtime build ───────────
 if(BACKEND_ORT)
-    # your existing ORT logic…
+    # Allow overriding ORT_ROOT via -DORT_ROOT=…
+    set(ORT_ROOT   "/usr/local/onnxruntime"  CACHE PATH "ONNX-Runtime root directory")
+    find_path(ORT_INCLUDE_DIR onnxruntime_cxx_api.h
+        HINTS "${ORT_ROOT}/include" /usr/include /usr/include/x86_64-linux-gnu
+    )
+    find_library(ORT_LIB       onnxruntime
+        HINTS "${ORT_ROOT}/lib" /usr/lib/x86_64-linux-gnu
+    )
+
+    add_backend_exe(infer_ort
+        infer_ort.cpp
+        "${ORT_INCLUDE_DIR}"
+        "${ORT_LIB};CUDA::cudart;Threads::Threads"
+    )
 endif()
