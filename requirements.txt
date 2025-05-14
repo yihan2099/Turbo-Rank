@@ -1,5 +1,7 @@
 awscli
 ipython
+ipykernel
+ipywidgets
 jupyterlab
 matplotlib
 notebook
@@ -29,3 +31,4 @@ onnxruntime-tools
 torch-tensorrt
 torchvision
 pre-commit
+
