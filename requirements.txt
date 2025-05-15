@@ -1,9 +1,11 @@
+# Development and environment
 pip
 python-dotenv
 pytest
 ruff
 pre-commit
 
+# Jupyter and interactive environments
 ipython
 ipykernel
 ipywidgets
@@ -11,28 +13,38 @@ jupyterlab
 notebook
 gradio
 
+# Data processing and analysis
 numpy
 pandas
-matplotlib
-scikit-learn
 pyarrow
 fastparquet
 pyspark
+scikit-learn
 shap
+
+# Visualization
+matplotlib
 pillow
 
-transformers[torch]
+# Deep learning and ML frameworks
 torch-tensorrt
 torchvision
+transformers[torch]
 diffusers[torch]
 peft
 safetensors
 accelerate
+bitsandbytes
+trl
+recommenders
+
+# Training utilities
+tensorboard
+tensorboardX
 datasets
 torchmetrics
-recommenders
-trl
 
+# Model optimization and deployment
 onnx
 onnxscript
 onnxruntime
@@ -40,12 +52,13 @@ onnxruntime-gpu
 onnxruntime-tools
 optimum
 
+# Experiment tracking and optimization
 mlflow
 optuna
 optuna-integration[mlflow]
 optuna-dashboard
 evaluate
-lighteval
 
+# Cloud and utilities
 awscli
 
