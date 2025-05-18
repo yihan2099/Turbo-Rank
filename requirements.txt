@@ -54,10 +54,12 @@ optimum
 
 # Experiment tracking and optimization
 mlflow
+wandb
 optuna
 optuna-integration[mlflow]
 optuna-dashboard
 evaluate
+ray
 
 # Cloud and utilities
 awscli
